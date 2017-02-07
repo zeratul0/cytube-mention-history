@@ -62,6 +62,9 @@ CLIENT.mentionHistoryFns = {
                     }
                     CLIENT.mentionHistory.messages.push(data);
                     
+                    if (!$('#showmentionmodal').hasClass('newMsg'))
+                        $('#showmentionmodal').addClass('newMsg');
+                    
                     const msgs = CLIENT.mentionHistory.messages;
                     if (msgs.length > CLIENT.mentionHistory.max)
                         CLIENT.mentionHistory.messages = msgs.slice(msgs.length - CLIENT.mentionHistory.max, msgs.length);
@@ -97,12 +100,13 @@ CLIENT.mentionHistoryFns = {
     'setHTML':()=>{
         
                 if (!$('#mentionModal').length)
-                    $('<div class="fade modal" id=mentionModal aria-hidden=true role=dialog style=display:none tabindex=-1><div class=modal-dialog><div class=modal-content><div class=modal-header><button class=close data-dismiss=modal aria-hidden=true>×</button><h4>Mention History: <span id=modal-mh-roomname>' + CHANNEL.name + '</span></h4></div><div class=modal-body id=mentionModalWrap><div class=modal-option><div class=checkbox><label for=mh-enable><input id=mh-enable type=checkbox> Enable Mention History</label><div class=modal-caption>Saves chat messages containing your username.</div></div></div><div class=modal-option><div class=checkbox><label for=mh-unique><input id=mh-unique type=checkbox> Only save unique messages</label><div class=modal-caption>If this is enabled and a given message has the exact same username and message as another message in your history, the message is ignored.</div></div></div><div class=modal-option><label for=mh-maxmsgs class=numInput>Maximum Messages <input id=mh-maxmsgs type=text class=form-control placeholder=200></label><div class=modal-caption>Maximum amount of messages allowed to be saved.</div></div><div class=modal-scroll id=mh-List></div></div><div class=modal-footer><div class=left-warning>Settings are not applied until you click Save.</div><button class="btn btn-danger" onclick=CLIENT.mentionHistoryFns.empty() type=button>Clear Messages</button> <button class="btn btn-primary" data-dismiss=modal onclick=CLIENT.mentionHistoryFns.save() type=button>Save</button> <button class="btn btn-primary" data-dismiss=modal onclick=CLIENT.mentionHistoryFns.updateModal() type=button>Close</button><div class=subfooter><span class=by>written by zeratul</span><span class=ver>version 1.0</span></div></div></div></div></div>').insertBefore("#pmbar");
+                    $('<div class="fade modal" id=mentionModal aria-hidden=true role=dialog style=display:none tabindex=-1><div class=modal-dialog><div class=modal-content><div class=modal-header><button class=close data-dismiss=modal aria-hidden=true>×</button><h4>Mention History: <span id=modal-mh-roomname>' + CHANNEL.name + '</span></h4></div><div class=modal-body id=mentionModalWrap><div class=modal-option><div class=checkbox><label for=mh-enable><input id=mh-enable type=checkbox> Enable Mention History</label><div class=modal-caption>Saves chat messages containing your username.</div></div></div><div class=modal-option><div class=checkbox><label for=mh-unique><input id=mh-unique type=checkbox> Only save unique messages</label><div class=modal-caption>If this is enabled and a given message has the exact same username and message as another message in your history, the message is ignored.</div></div></div><div class=modal-option><label for=mh-maxmsgs class=numInput>Maximum Messages <input id=mh-maxmsgs type=text class=form-control placeholder=200></label><div class=modal-caption>Maximum amount of messages allowed to be saved.</div></div><div class=modal-scroll id=mh-List></div></div><div class=modal-footer><div class=left-warning>Settings are not applied until you click Save.</div><button class="btn btn-danger" onclick=CLIENT.mentionHistoryFns.empty() type=button>Clear Messages</button> <button class="btn btn-primary" data-dismiss=modal onclick=CLIENT.mentionHistoryFns.save() type=button>Save</button> <button class="btn btn-primary" data-dismiss=modal onclick=CLIENT.mentionHistoryFns.updateModal() type=button>Close</button><div class=subfooter><span class=by>written by zeratul</span><span class=ver>version 1.01</span></div></div></div></div></div>').insertBefore("#pmbar");
                 if (!$('#showmentionmodal').length)
-                    $('ul.navbar-nav').append($('<li/>').append("<a id=showmentionmodal href=javascript:void(0) onclick=javascript:$('#mentionModal').modal()>Mention History</a>"));
+                    $('ul.navbar-nav').append($('<li/>').append("<a id=showmentionmodal href=javascript:void(0) onclick=javascript:CLIENT.mentionHistoryFns.openModal()>Mention History</a>"));
                 
                 $('.head-MHCSS').remove();
                 $('head').append('<style class="head-MHCSS">'+
+                                '#showmentionmodal.newMsg {color: red;text-shadow: 1px 0 #500, 0 1px #500, -1px 0 #500, 0 -1px #500;}'+
                                 '.modal .modal-scroll {padding: 4px;background: #161616;box-shadow: 0 0 10px black inset;border: 1px solid black;border-radius: 6px;width: 100%;height:310px;overflow-y: auto;margin-top: 30px;}'+
                                 '.modal #mh-maxmsgs {display: inline-block;margin-left: 10px;width: 100px;}'+
                                 '.modal label.numInput {min-height: 20px;padding-left: 20px;margin-bottom: 0;font-weight: 400;}'+
@@ -112,6 +116,10 @@ CLIENT.mentionHistoryFns = {
                                 '#mentionModal .subfooter .by {padding-right: 10px;border-right: 1px solid #252525}'+
                                 '#mentionModal .subfooter .ver {padding-left: 10px;border-left: 1px solid #4e4e4e}'+
                                 '</style>');
+            },
+    'openModal':()=>{
+                $('#mentionModal').modal();
+                $('#showmentionmodal').removeClass('newMsg');
             }
 };
 
