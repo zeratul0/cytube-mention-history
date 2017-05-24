@@ -1,8 +1,16 @@
+/*
+    Cytube Mention History script
+    zeratul
+    github.com/zeratul0
+    v1.02
+*/
+
 (()=>{
 if (CLIENT.mentionHistory === undefined) {
     CLIENT.mentionHistory = {
         'enabled' : true,
         'messages': [],
+        'saved'   : [],
         'max'     : 200,
         'unique'  : true
     };
@@ -12,8 +20,8 @@ if (CLIENT.mentionHistory === undefined) {
     
 CLIENT.mentionHistoryFns = {
     'load'  :()=>{
-                if (localStorage.getItem(CHANNEL.name + "_mentionHistory"))
-                    CLIENT.mentionHistory = JSON.parse(localStorage.getItem(CHANNEL.name + "_mentionHistory"));
+                if (getOpt(CHANNEL.name + "_mentionHistory"))
+                    CLIENT.mentionHistory = getOpt(CHANNEL.name + "_mentionHistory");
                 CLIENT.mentionHistoryFns.validMax();
                 CLIENT.mentionHistoryFns.fillModal();
                 CLIENT.mentionHistoryFns.updateModal();
@@ -27,10 +35,10 @@ CLIENT.mentionHistoryFns = {
                 while ($('#mentionModal #mh-List div').length > CLIENT.mentionHistory.max) {
                     $('#mentionModal #mh-List div').eq(0).remove();
                 }
-                const msgs = CLIENT.mentionHistory.messages;
+                var msgs = CLIENT.mentionHistory.messages;
                 if (msgs.length > CLIENT.mentionHistory.max)
                     CLIENT.mentionHistory.messages = msgs.slice(msgs.length - CLIENT.mentionHistory.max, msgs.length);
-                localStorage.setItem(CHANNEL.name + "_mentionHistory", JSON.stringify(CLIENT.mentionHistory));
+                setOpt(CHANNEL.name + "_mentionHistory", CLIENT.mentionHistory);
             },
     'validMax':()=>{
                 if (isNaN(CLIENT.mentionHistory.max) || typeof CLIENT.mentionHistory.max !== "number" || CLIENT.mentionHistory.max < 1) {
@@ -38,14 +46,65 @@ CLIENT.mentionHistoryFns = {
                 }
                 $('#mh-maxmsgs').val(CLIENT.mentionHistory.max);
             },
-    'parseMsg':(msgObj)=>{
-                if (msgObj && msgObj['msg'] && msgObj['username'] && msgObj['time'])
-                    return '<div class="chat-msg-' + msgObj.username + '"><span class="timestamp">[' + new Date(msgObj.time).toString().split(' ').slice(0,5).join(' ') +
-                           '] </span><span><strong class="username">' + msgObj.username + ': </strong></span><span>' + msgObj.msg + '</span></div>';
+    'parseMsg':(msgObj, buttons, isSaved)=>{
+                if (msgObj && msgObj['msg'] && msgObj['username'] && msgObj['time']) {
+                    var buttonHTML = $("<div/>", {'class':"btn-group"});
+                    if (buttons) {
+                        var save,del;
+                        if (~buttons.indexOf("save")) {
+                            buttonHTML.append($("<button/>", {
+                                'class':"btn btn-xs btn-success",
+                                'title':"Save this message",
+                                'click':function() {
+                                    if (!isSaved) CLIENT.mentionHistoryFns.saveMessage(msgObj);
+                                }
+                            }).append('<span class="glyphicon glyphicon-floppy-save"></span>'));
+                        }
+                        if (~buttons.indexOf("delete")) {
+                            buttonHTML.append($("<button/>", {
+                                'class':"btn btn-xs btn-danger",
+                                'title':"Permanently delete this message",
+                                'click':function() {
+                                    if (isSaved) CLIENT.mentionHistoryFns.deleteSaved(msgObj);
+                                    else CLIENT.mentionHistoryFns.deleteMsg(msgObj);
+                                    $(this).parent().parent().remove();
+                                }
+                            }).append('<span class="glyphicon glyphicon-trash"></span>'));
+                        }
+                    }
+                    var msg = $('<div class="chat-msg-' + msgObj.username + '"><span class="timestamp">[' + new Date(msgObj.time).toString().split(' ').slice(0,5).join(' ') +
+                           '] </span><span><strong class="username">' + msgObj.username + ': </strong></span><span>' + msgObj.msg + '</span></div>');
+                    if (buttonHTML.children().length > 0) msg.prepend(buttonHTML);
+                    return msg;
+                }
+            },
+    'deleteMsg':(msgObj)=>{
+                if (msgObj && msgObj['msg'] && msgObj['username'] && msgObj['time']) {
+                    var i = 0,
+                        msgs = CLIENT.mentionHistory.messages;
+                    for (;i<msgs.length;i++) {
+                        if (msgObj['msg'] === msgs[i]['msg'] && msgObj['username'] === msgs[i]['username'] && msgObj['time'] === msgs[i]['time']) {
+                            CLIENT.mentionHistory.messages.splice(i,1);
+                            CLIENT.mentionHistoryFns.save();
+                        }
+                    }
+                }
+            },
+    'deleteSaved':(msgObj)=>{
+                if (msgObj && msgObj['msg'] && msgObj['username'] && msgObj['time']) {
+                    var i = 0,
+                        msgs = CLIENT.mentionHistory.saved;
+                    for (;i<msgs.length;i++) {
+                        if (msgObj['msg'] === msgs[i]['msg'] && msgObj['username'] === msgs[i]['username'] && msgObj['time'] === msgs[i]['time']) {
+                            CLIENT.mentionHistory.saved.splice(i,1);
+                            CLIENT.mentionHistoryFns.save();
+                        }
+                    }
+                }
             },
     'newMsg':(data)=>{
                 if (CLIENT.mentionHistory.enabled && data.msg && data.username && CLIENT.name && ~data.msg.toLowerCase().indexOf(CLIENT.name.toLowerCase())) {
-                    const message = data.msg.toLowerCase(),
+                    var message = data.msg.toLowerCase(),
                           user = data.username.toLowerCase(),
                           me = CLIENT.name.toLowerCase(),
                           _this = CLIENT.mentionHistory;
@@ -53,7 +112,7 @@ CLIENT.mentionHistoryFns = {
                     if (user === "[server]" || user === me) return;
                     CLIENT.mentionHistoryFns.validMax();
                     if (_this.unique) {
-                        let i=0;
+                        var i=0;
                         for (;i<_this.messages.length;i++) {
                             if (_this.messages[i].msg.toLowerCase() === message && _this.messages[i].username.toLowerCase() === user) {
                                 return console.debug("mentionHistory: Message sent by " + data.username + " ignored, only recording unique messages");
@@ -65,26 +124,53 @@ CLIENT.mentionHistoryFns = {
                     if (!$('#showmentionmodal').hasClass('newMsg'))
                         $('#showmentionmodal').addClass('newMsg');
                     
-                    const msgs = CLIENT.mentionHistory.messages;
+                    var msgs = CLIENT.mentionHistory.messages;
                     if (msgs.length > CLIENT.mentionHistory.max)
                         CLIENT.mentionHistory.messages = msgs.slice(msgs.length - CLIENT.mentionHistory.max, msgs.length);
                     
-                    $('#mentionModal #mh-List').append(CLIENT.mentionHistoryFns.parseMsg(data));
+                    $('#mentionModal #mh-List').append(CLIENT.mentionHistoryFns.parseMsg(data, ["save", "delete"], false));
+                    CLIENT.mentionHistoryFns.save();
+                }
+            },
+    'saveMessage':(msgObj)=>{
+                if (msgObj && msgObj['msg'] && msgObj['username'] && msgObj['time']) {
+                    var msgs = CLIENT.mentionHistory.saved;
+                    var i = 0;
+                    for (;i<msgs.length;i++) {
+                        if (msgObj['msg'] === msgs[i]['msg'] && msgObj['username'] === msgs[i]['username'] && msgObj['time'] === msgs[i]['time']) {
+                            return alert("That message has already been saved. Check your Saved Messages tab.");
+                        }
+                    }
+                    CLIENT.mentionHistory.saved.push(msgObj);
+                    $('#mentionModal #mh-saved').append(CLIENT.mentionHistoryFns.parseMsg(msgObj, ["delete"], true));
                     CLIENT.mentionHistoryFns.save();
                 }
             },
     'fillModal':()=>{
                 $('#mentionModal #mh-List').empty();
-                let i=0,
-                    HTML="";
-                const msgs=CLIENT.mentionHistory.messages;
+                var i=0,
+                    list = $('#mh-List');
+                var msgs=CLIENT.mentionHistory.messages;
                 for (;i<msgs.length;i++){
-                    HTML+=CLIENT.mentionHistoryFns.parseMsg(msgs[i]);
+                    list.append(CLIENT.mentionHistoryFns.parseMsg(msgs[i], ["save", "delete"], false));
                 }
-                $('#mentionModal #mh-List').html(HTML);
+                CLIENT.mentionHistoryFns.scrollModal();
+            },
+    'fillSaved':()=>{
+                $('#mentionModal #mh-saved').empty();
+                var i=0,
+                    list = $('#mh-saved');
+                var msgs=CLIENT.mentionHistory.saved;
+                for (;i<msgs.length;i++){
+                    list.append(CLIENT.mentionHistoryFns.parseMsg(msgs[i], ["delete"], true));
+                }
+                CLIENT.mentionHistoryFns.scrollSaved();
             },
     'emptyModal':()=>{
                 $('#mentionModal #mh-List').empty();
+            },
+    'emptySavedList':()=>{
+                $('#mentionModal #mh-saved').empty();
             },
     'updateModal':()=>{
                 CLIENT.mentionHistoryFns.validMax();
@@ -92,22 +178,34 @@ CLIENT.mentionHistoryFns = {
                 $('#mh-unique').prop('checked', CLIENT.mentionHistory.unique);
             },
     'empty' :()=>{
-                if (!confirm('Are you sure you want to permanently delete your mention history for: "' + CHANNEL.name + '"?')) return;
+                if (!confirm('Are you sure you want to permanently delete your mention history for: "' + CHANNEL.name + '"? (This will not delete any messages from the Saved Messages tab.)')) return;
                 CLIENT.mentionHistory.messages = [];
                 CLIENT.mentionHistoryFns.save();
                 CLIENT.mentionHistoryFns.emptyModal();
             },
+    'emptySaved' :()=>{
+                if (!confirm('Are you sure you want to permanently delete your **SAVED** mention history for: "' + CHANNEL.name + '"? (This will not delete any messages from the All Messages tab.)')) return;
+                CLIENT.mentionHistory.saved = [];
+                CLIENT.mentionHistoryFns.save();
+                CLIENT.mentionHistoryFns.emptySavedList();
+            },
     'setHTML':()=>{
         
                 if (!$('#mentionModal').length)
-                    $('<div class="fade modal" id=mentionModal aria-hidden=true role=dialog style=display:none tabindex=-1><div class=modal-dialog><div class=modal-content><div class=modal-header><button class=close data-dismiss=modal aria-hidden=true>×</button><h4>Mention History: <span id=modal-mh-roomname>' + CHANNEL.name + '</span></h4></div><div class=modal-body id=mentionModalWrap><div class=modal-option><div class=checkbox><label for=mh-enable><input id=mh-enable type=checkbox> Enable Mention History</label><div class=modal-caption>Saves chat messages containing your username.</div></div></div><div class=modal-option><div class=checkbox><label for=mh-unique><input id=mh-unique type=checkbox> Only save unique messages</label><div class=modal-caption>If this is enabled and a given message has the exact same username and message as another message in your history, the message is ignored.</div></div></div><div class=modal-option><label for=mh-maxmsgs class=numInput>Maximum Messages <input id=mh-maxmsgs type=text class=form-control placeholder=200></label><div class=modal-caption>Maximum amount of messages allowed to be saved.</div></div><div class=modal-scroll id=mh-List></div></div><div class=modal-footer><div class=left-warning>Settings are not applied until you click Save.</div><button class="btn btn-danger" onclick=CLIENT.mentionHistoryFns.empty() type=button>Clear Messages</button> <button class="btn btn-primary" data-dismiss=modal onclick=CLIENT.mentionHistoryFns.save() type=button>Save</button> <button class="btn btn-primary" data-dismiss=modal onclick=CLIENT.mentionHistoryFns.updateModal() type=button>Close</button><div class=subfooter><span class=by>written by zeratul</span><span class=ver>version 1.01</span></div></div></div></div></div>').insertBefore("#pmbar");
+                    $('<div class="fade modal" id=mentionModal aria-hidden=true role=dialog style=display:none tabindex=-1><div class=modal-dialog><div class=modal-content><div class=modal-header><button class=close data-dismiss=modal aria-hidden=true>×</button><h4>Mention History: <span id=modal-mh-roomname>' + CHANNEL.name + '</span></h4></div><div class=modal-body id=mentionModalWrap><div class=modal-option><div class=checkbox><label for=mh-enable><input id=mh-enable type=checkbox> Enable Mention History</label><div class=modal-caption>When this is checked, chat messages containing your username will be recorded here.</div></div></div><div class=modal-option><div class=checkbox><label for=mh-unique><input id=mh-unique type=checkbox> Only save unique messages</label><div class=modal-caption>When this option is checked, new messages will not be recorded if your history contains a message with the same username and text.</div></div></div><div class=modal-option><label for=mh-maxmsgs class=numInput>Maximum Messages <input id=mh-maxmsgs type=text class=form-control placeholder=200></label><div class=modal-caption>Maximum amount of messages allowed to be recorded. Saved messages have no limit.</div></div><ul class="nav nav-tabs"><li class="active"><a href="#mh-List" data-toggle="tab" aria-expanded="true">All Messages</a></li><li class=""><a href="#mh-saved" data-toggle="tab" aria-expanded="false">Saved Messages</a></li></ul><div class="modal-scroll active" id=mh-List></div><div class="modal-scroll" id=mh-saved></div></div><div class=modal-footer><div class=left-warning>Settings are not applied until you click Save.</div><button class="btn btn-danger" onclick=CLIENT.mentionHistoryFns.emptySaved() type=button>Clear Saved Messages</button><button class="btn btn-danger" onclick=CLIENT.mentionHistoryFns.empty() type=button>Clear Messages</button> <button class="btn btn-primary" data-dismiss=modal onclick=CLIENT.mentionHistoryFns.save() type=button>Save</button> <button class="btn btn-primary" data-dismiss=modal onclick=CLIENT.mentionHistoryFns.updateModal() type=button>Close</button><div class=subfooter><span class=by>written by zeratul</span><span class=ver>version 1.02</span></div></div></div></div></div>').insertBefore("#pmbar");
                 if (!$('#showmentionmodal').length)
                     $('ul.navbar-nav').append($('<li/>').append("<a id=showmentionmodal href=javascript:void(0) onclick=javascript:CLIENT.mentionHistoryFns.openModal()>Mention History</a>"));
                 
                 $('.head-MHCSS').remove();
                 $('head').append('<style class="head-MHCSS">'+
                                 '#showmentionmodal.newMsg {color: red;text-shadow: 1px 0 #500, 0 1px #500, -1px 0 #500, 0 -1px #500;}'+
-                                '.modal .modal-scroll {padding: 4px;background: #161616;box-shadow: 0 0 10px black inset;border: 1px solid black;border-radius: 6px;width: 100%;height:310px;overflow-y: auto;margin-top: 30px;}'+
+                                '#mentionModal.modal .modal-scroll {display: none;padding: 4px;background: #161616;box-shadow: 0 -4px 10px black inset;border: 1px solid black;border-top: 0;border-bottom-left-radius: 6px;border-bottom-right-radius: 6px;width: 100%;height:310px;overflow-y: auto;margin: 0!important;}'+
+                                '#mentionModal.modal .modal-scroll.active {display: block!important;}'+
+                                '#mentionModal.modal .btn-group .btn-success {background-image: linear-gradient(#1c6b1c,#2c822c 40%,#15a015);}'+
+                                '#mentionModal.modal .btn-group .btn-success:hover {background-image: linear-gradient(#155015,#1f5d1f 40%,#0e6f0e);}'+
+                                '#mentionModal.modal .nav.nav-tabs {margin-top: 30px;}'+
+                                '.modal .modal-scroll div {overflow: hidden;}'+
+                                '#mentionModal.modal .modal-scroll div .btn-group {margin: 0 5px;}'+
                                 '.modal #mh-maxmsgs {display: inline-block;margin-left: 10px;width: 100px;}'+
                                 '.modal label.numInput {min-height: 20px;padding-left: 20px;margin-bottom: 0;font-weight: 400;}'+
                                 '.modal .left-warning {float: left;padding: 10px 12px;font-size: 13px;color: #ff8f8f}'+
@@ -120,13 +218,27 @@ CLIENT.mentionHistoryFns = {
     'openModal':()=>{
                 $('#mentionModal').modal();
                 $('#showmentionmodal').removeClass('newMsg');
-            }
+                CLIENT.mentionHistoryFns.scrollModal();
+                CLIENT.mentionHistoryFns.scrollSaved();
+            },
+    'scrollModal':()=>{
+                var list = document.getElementById('mh-List');
+                list.scrollTop = list.scrollHeight;
+            },
+    'scrollSaved':()=>{
+                var list = document.getElementById('mh-saved');
+                list.scrollTop = list.scrollHeight;
+            },
 };
 
 
 CLIENT.mentionHistoryFns.setHTML();
 CLIENT.mentionHistoryFns.load();
+if (!CLIENT.mentionHistory.hasOwnProperty("saved")) {
+    CLIENT.mentionHistory["saved"] = [];
+}
 CLIENT.mentionHistoryFns.fillModal();
+CLIENT.mentionHistoryFns.fillSaved();
 CLIENT.mentionHistoryFns.updateModal();
     
 socket.on("chatMsg", function(data)
