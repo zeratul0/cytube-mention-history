@@ -50,7 +50,6 @@ CLIENT.mentionHistoryFns = {
                 if (msgObj && msgObj['msg'] && msgObj['username'] && msgObj['time']) {
                     var buttonHTML = $("<div/>", {'class':"btn-group"});
                     if (buttons) {
-                        var save,del;
                         if (~buttons.indexOf("save")) {
                             buttonHTML.append($("<button/>", {
                                 'class':"btn btn-xs btn-success",
