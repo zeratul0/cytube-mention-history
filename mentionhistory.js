@@ -2,7 +2,9 @@
     Cytube Mention History script
     zeratul
     github.com/zeratul0
-    v1.02
+    v1.03
+    1.03 -- Autoscroll to bottom of messages when modal is opened. Save button causes messages to flash green, saving messages that are already saved will flash red instead of creating a popup.
+            Message box border will be red if a new message is received while the modal is open. Scrolling all the way down will remove it.
 */
 
 (()=>{
@@ -11,6 +13,7 @@ if (CLIENT.mentionHistory === undefined) {
         'enabled' : true,
         'messages': [],
         'saved'   : [],
+        'savedWasOpened': false,
         'max'     : 200,
         'unique'  : true
     };
@@ -55,7 +58,10 @@ CLIENT.mentionHistoryFns = {
                                 'class':"btn btn-xs btn-success",
                                 'title':"Save this message",
                                 'click':function() {
-                                    if (!isSaved) CLIENT.mentionHistoryFns.saveMessage(msgObj);
+                                    if (!isSaved && CLIENT.mentionHistoryFns.saveMessage(msgObj))
+                                        $(this).parent().parent().addClass('blink').removeClass('blink', 50);
+                                    else
+                                        $(this).parent().parent().addClass('blink-red').removeClass('blink-red', 50);
                                 }
                             }).append('<span class="glyphicon glyphicon-floppy-save"></span>'));
                         }
@@ -122,6 +128,9 @@ CLIENT.mentionHistoryFns = {
                     
                     if (!$('#showmentionmodal').hasClass('newMsg'))
                         $('#showmentionmodal').addClass('newMsg');
+                    if (!$('#mh-List').hasClass('newMsg') && $('#mh-List')[0].scrollHeight > $('#mh-List')[0].clientHeight)
+                        $('#mh-List').addClass('newMsg');
+                        
                     
                     var msgs = CLIENT.mentionHistory.messages;
                     if (msgs.length > CLIENT.mentionHistory.max)
@@ -137,12 +146,13 @@ CLIENT.mentionHistoryFns = {
                     var i = 0;
                     for (;i<msgs.length;i++) {
                         if (msgObj['msg'] === msgs[i]['msg'] && msgObj['username'] === msgs[i]['username'] && msgObj['time'] === msgs[i]['time']) {
-                            return alert("That message has already been saved. Check your Saved Messages tab.");
+                            return false;
                         }
                     }
                     CLIENT.mentionHistory.saved.push(msgObj);
                     $('#mentionModal #mh-saved').append(CLIENT.mentionHistoryFns.parseMsg(msgObj, ["delete"], true));
                     CLIENT.mentionHistoryFns.save();
+                    return true;
                 }
             },
     'fillModal':()=>{
@@ -153,7 +163,7 @@ CLIENT.mentionHistoryFns = {
                 for (;i<msgs.length;i++){
                     list.append(CLIENT.mentionHistoryFns.parseMsg(msgs[i], ["save", "delete"], false));
                 }
-                CLIENT.mentionHistoryFns.scrollModal();
+                CLIENT.mentionHistoryFns.scrollAll();
             },
     'fillSaved':()=>{
                 $('#mentionModal #mh-saved').empty();
@@ -163,10 +173,11 @@ CLIENT.mentionHistoryFns = {
                 for (;i<msgs.length;i++){
                     list.append(CLIENT.mentionHistoryFns.parseMsg(msgs[i], ["delete"], true));
                 }
-                CLIENT.mentionHistoryFns.scrollSaved();
+                CLIENT.mentionHistoryFns.scrollAll();
             },
     'emptyModal':()=>{
                 $('#mentionModal #mh-List').empty();
+                $('#mh-List').removeClass('newMsg');
             },
     'emptySavedList':()=>{
                 $('#mentionModal #mh-saved').empty();
@@ -190,8 +201,25 @@ CLIENT.mentionHistoryFns = {
             },
     'setHTML':()=>{
         
-                if (!$('#mentionModal').length)
-                    $('<div class="fade modal" id=mentionModal aria-hidden=true role=dialog style=display:none tabindex=-1><div class=modal-dialog><div class=modal-content><div class=modal-header><button class=close data-dismiss=modal aria-hidden=true>×</button><h4>Mention History: <span id=modal-mh-roomname>' + CHANNEL.name + '</span></h4></div><div class=modal-body id=mentionModalWrap><div class=modal-option><div class=checkbox><label for=mh-enable><input id=mh-enable type=checkbox> Enable Mention History</label><div class=modal-caption>When this is checked, chat messages containing your username will be recorded here.</div></div></div><div class=modal-option><div class=checkbox><label for=mh-unique><input id=mh-unique type=checkbox> Only save unique messages</label><div class=modal-caption>When this option is checked, new messages will not be recorded if your history contains a message with the same username and text.</div></div></div><div class=modal-option><label for=mh-maxmsgs class=numInput>Maximum Messages <input id=mh-maxmsgs type=text class=form-control placeholder=200></label><div class=modal-caption>Maximum amount of messages allowed to be recorded. Saved messages have no limit.</div></div><ul class="nav nav-tabs"><li class="active"><a href="#mh-List" data-toggle="tab" aria-expanded="true">All Messages</a></li><li class=""><a href="#mh-saved" data-toggle="tab" aria-expanded="false">Saved Messages</a></li></ul><div class="modal-scroll active" id=mh-List></div><div class="modal-scroll" id=mh-saved></div></div><div class=modal-footer><div class=left-warning>Settings are not applied until you click Save.</div><button class="btn btn-danger" onclick=CLIENT.mentionHistoryFns.emptySaved() type=button>Clear Saved Messages</button><button class="btn btn-danger" onclick=CLIENT.mentionHistoryFns.empty() type=button>Clear Messages</button> <button class="btn btn-primary" data-dismiss=modal onclick=CLIENT.mentionHistoryFns.save() type=button>Save</button> <button class="btn btn-primary" data-dismiss=modal onclick=CLIENT.mentionHistoryFns.updateModal() type=button>Close</button><div class=subfooter><span class=by>written by zeratul</span><span class=ver>version 1.02</span></div></div></div></div></div>').insertBefore("#pmbar");
+                if (!$('#mentionModal').length) {
+                    $('<div class="fade modal" id=mentionModal aria-hidden=true role=dialog style=display:none tabindex=-1><div class=modal-dialog><div class=modal-content><div class=modal-header><button class=close data-dismiss=modal aria-hidden=true>×</button><h4>Mention History: <span id=modal-mh-roomname>' + CHANNEL.name + '</span></h4></div><div class=modal-body id=mentionModalWrap><div class=modal-option><div class=checkbox><label for=mh-enable><input id=mh-enable type=checkbox> Enable Mention History</label><div class=modal-caption>When this is checked, chat messages containing your username will be recorded here.</div></div></div><div class=modal-option><div class=checkbox><label for=mh-unique><input id=mh-unique type=checkbox> Only save unique messages</label><div class=modal-caption>When this option is checked, new messages will not be recorded if your history contains a message with the same username and text.</div></div></div><div class=modal-option><label for=mh-maxmsgs class=numInput>Maximum Messages <input id=mh-maxmsgs type=text class=form-control placeholder=200></label><div class=modal-caption>Maximum amount of messages allowed to be recorded. Saved messages have no limit.</div></div><ul class="nav nav-tabs"><li class="active"><a href="#mh-List" data-toggle="tab" aria-expanded="true">All Messages</a></li><li class=""><a href="#mh-saved" data-toggle="tab" aria-expanded="false">Saved Messages</a></li></ul><div class="modal-scroll active" id=mh-List></div><div class="modal-scroll" id=mh-saved></div></div><div class=modal-footer><div class=left-warning>Settings are not applied until you click Save.</div><button class="btn btn-danger" onclick=CLIENT.mentionHistoryFns.emptySaved() type=button>Clear Saved Messages</button><button class="btn btn-danger" onclick=CLIENT.mentionHistoryFns.empty() type=button>Clear Messages</button> <button class="btn btn-primary" data-dismiss=modal onclick=CLIENT.mentionHistoryFns.save() type=button>Save</button> <button class="btn btn-primary" data-dismiss=modal onclick=CLIENT.mentionHistoryFns.updateModal() type=button>Close</button><div class=subfooter><span class=by>written by zeratul</span><span class=ver>version 1.03</span></div></div></div></div></div>').insertBefore("#pmbar");
+                    $('#mentionModal').on('shown.bs.modal', function() {
+                        CLIENT.mentionHistoryFns.scrollAll();
+                    });
+                    $('#mentionModal .nav.nav-tabs li').eq(1).on('click', function() {
+                        if (!CLIENT.mentionHistory.savedWasOpened) {
+                            CLIENT.mentionHistory.savedWasOpened = true;
+                            CLIENT.mentionHistoryFns.scrollAll();
+                        }
+                    });
+                    $('#mh-List').on('scroll', function() {
+                        var list = this;
+                        if (this.classList.contains("newMsg") && (list.scrollTop + list.clientHeight) >= list.scrollHeight - 8) {
+                            this.classList.remove("newMsg");
+                            $('#showmentionmodal').removeClass('newMsg');
+                        }
+                    });
+                }
                 if (!$('#showmentionmodal').length)
                     $('ul.navbar-nav').append($('<li/>').append("<a id=showmentionmodal href=javascript:void(0) onclick=javascript:CLIENT.mentionHistoryFns.openModal()>Mention History</a>"));
                 
@@ -203,7 +231,10 @@ CLIENT.mentionHistoryFns = {
                                 '#mentionModal.modal .btn-group .btn-success {background-image: linear-gradient(#1c6b1c,#2c822c 40%,#15a015);}'+
                                 '#mentionModal.modal .btn-group .btn-success:hover {background-image: linear-gradient(#155015,#1f5d1f 40%,#0e6f0e);}'+
                                 '#mentionModal.modal .nav.nav-tabs {margin-top: 30px;}'+
-                                '.modal .modal-scroll div {overflow: hidden;}'+
+                                '#mentionModal.modal #mh-List.newMsg {border-color: red!important;}'+
+                                '.modal .modal-scroll>div {overflow: hidden;transition: background-color .5s ease, color .5s ease;}'+
+                                '.modal .modal-scroll>div.blink {transition: none!important;background-color: #3cbd3c;color: black;}'+
+                                '.modal .modal-scroll>div.blink-red {transition: none!important;background-color: #a03e3e;color: black;}'+
                                 '#mentionModal.modal .modal-scroll div .btn-group {margin: 0 5px;}'+
                                 '.modal #mh-maxmsgs {display: inline-block;margin-left: 10px;width: 100px;}'+
                                 '.modal label.numInput {min-height: 20px;padding-left: 20px;margin-bottom: 0;font-weight: 400;}'+
@@ -217,16 +248,16 @@ CLIENT.mentionHistoryFns = {
     'openModal':()=>{
                 $('#mentionModal').modal();
                 $('#showmentionmodal').removeClass('newMsg');
-                CLIENT.mentionHistoryFns.scrollModal();
-                CLIENT.mentionHistoryFns.scrollSaved();
             },
-    'scrollModal':()=>{
-                var list = document.getElementById('mh-List');
-                list.scrollTop = list.scrollHeight;
-            },
-    'scrollSaved':()=>{
-                var list = document.getElementById('mh-saved');
-                list.scrollTop = list.scrollHeight;
+    'scrollAll':()=>{
+                var list = document.getElementById('mh-List'),
+                    saved = document.getElementById('mh-saved');
+                    
+                if (list.classList.contains("active"))
+                    list.scrollTop = list.scrollHeight;
+                
+                if (saved.classList.contains("active"))
+                    saved.scrollTop = saved.scrollHeight;
             },
 };
 
