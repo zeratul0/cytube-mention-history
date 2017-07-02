@@ -2,7 +2,8 @@
     Cytube Mention History script
     zeratul
     github.com/zeratul0
-    v1.03
+    v1.04
+    1.04 -- Ignored users are now.. ignored.
     1.03 -- Autoscroll to bottom of messages when modal is opened. Save button causes messages to flash green, saving messages that are already saved will flash red instead of creating a popup.
             Message box border will be red if a new message is received while the modal is open. Scrolling all the way down will remove it.
 */
@@ -273,6 +274,7 @@ CLIENT.mentionHistoryFns.updateModal();
     
 socket.on("chatMsg", function(data)
 {
+    if (IGNORED.indexOf(data.username) > -1) return;
     CLIENT.mentionHistoryFns.newMsg(data);
 });
 
