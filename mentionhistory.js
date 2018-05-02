@@ -1,8 +1,9 @@
 /*
     Cytube Mention History script
-    zeratul
+    zeratul (biggles-)
     github.com/zeratul0
-    v1.04
+    v1.05
+    1.05 -- Fix options resetting if their elements aren't found
     1.04 -- Ignored users are now.. ignored.
     1.03 -- Autoscroll to bottom of messages when modal is opened. Save button causes messages to flash green, saving messages that are already saved will flash red instead of creating a popup.
             Message box border will be red if a new message is received while the modal is open. Scrolling all the way down will remove it.
@@ -17,7 +18,7 @@ if (CLIENT.mentionHistory === undefined) {
         'savedWasOpened': false,
         'max'     : 200,
         'unique'  : true,
-        'ver'     : "1.04"
+        'ver'     : "1.05"
     };
 } else {
     return console.error("Tried to load Mention History add-on, but CLIENT.mentionHistory already exists (did it load already?)");
@@ -32,14 +33,16 @@ CLIENT.mentionHistoryFns = {
                 CLIENT.mentionHistoryFns.updateModal();
             },
     'save'  :()=>{
-                CLIENT.mentionHistory.enabled = $('#mh-enable').prop('checked');
-                CLIENT.mentionHistory.unique = $('#mh-unique').prop('checked');
-                CLIENT.mentionHistory.max = parseInt($('#mh-maxmsgs').val());
-                CLIENT.mentionHistoryFns.validMax();
-                
-                while ($('#mentionModal #mh-List div').length > CLIENT.mentionHistory.max) {
-                    $('#mentionModal #mh-List div').eq(0).remove();
+                if (document.querySelector("#mh-enable") && document.querySelector("#mh-unique") && document.querySelector("#mh-maxmsgs")) {
+                    CLIENT.mentionHistory.enabled = $('#mh-enable').prop('checked');
+                    CLIENT.mentionHistory.unique = $('#mh-unique').prop('checked');
+                    CLIENT.mentionHistory.max = parseInt($('#mh-maxmsgs').val());
                 }
+                CLIENT.mentionHistoryFns.validMax();
+                if (document.querySelector("#mentionModal"))
+                    while ($('#mentionModal #mh-List div').length > CLIENT.mentionHistory.max)
+                        $('#mentionModal #mh-List div').eq(0).remove();
+
                 var msgs = CLIENT.mentionHistory.messages;
                 if (msgs.length > CLIENT.mentionHistory.max)
                     CLIENT.mentionHistory.messages = msgs.slice(msgs.length - CLIENT.mentionHistory.max, msgs.length);
@@ -204,7 +207,7 @@ CLIENT.mentionHistoryFns = {
     'setHTML':()=>{
         
                 if (!$('#mentionModal').length) {
-                    $('<div class="fade modal" id=mentionModal aria-hidden=true role=dialog style=display:none tabindex=-1><div class=modal-dialog><div class=modal-content><div class=modal-header><button class=close data-dismiss=modal aria-hidden=true>×</button><h4>Mention History: <span id=modal-mh-roomname>' + CHANNEL.name + '</span></h4></div><div class=modal-body id=mentionModalWrap><div class=modal-option><div class=checkbox><label for=mh-enable><input id=mh-enable type=checkbox> Enable Mention History</label><div class=modal-caption>When this is checked, chat messages containing your username will be recorded here.</div></div></div><div class=modal-option><div class=checkbox><label for=mh-unique><input id=mh-unique type=checkbox> Only save unique messages</label><div class=modal-caption>When this option is checked, new messages will not be recorded if your history contains a message with the same username and text.</div></div></div><div class=modal-option><label for=mh-maxmsgs class=numInput>Maximum Messages <input id=mh-maxmsgs type=text class=form-control placeholder=200></label><div class=modal-caption>Maximum amount of messages allowed to be recorded. Saved messages have no limit.</div></div><ul class="nav nav-tabs"><li class="active"><a href="#mh-List" data-toggle="tab" aria-expanded="true">All Messages</a></li><li class=""><a href="#mh-saved" data-toggle="tab" aria-expanded="false">Saved Messages</a></li></ul><div class="modal-scroll active" id=mh-List></div><div class="modal-scroll" id=mh-saved></div></div><div class=modal-footer><div class=left-warning>Settings are not applied until you click Save.</div><button class="btn btn-danger" onclick=CLIENT.mentionHistoryFns.emptySaved() type=button>Clear Saved Messages</button><button class="btn btn-danger" onclick=CLIENT.mentionHistoryFns.empty() type=button>Clear Messages</button> <button class="btn btn-primary" data-dismiss=modal onclick=CLIENT.mentionHistoryFns.save() type=button>Save</button> <button class="btn btn-primary" data-dismiss=modal onclick=CLIENT.mentionHistoryFns.updateModal() type=button>Close</button><div class=subfooter><span class=by>written by zeratul</span><span class=ver>version ' + CLIENT.mentionHistory.ver + '</span></div></div></div></div></div>').insertBefore("#pmbar");
+                    $('<div class="fade modal" id=mentionModal aria-hidden=true role=dialog style=display:none tabindex=-1><div class=modal-dialog><div class=modal-content><div class=modal-header><button class=close data-dismiss=modal aria-hidden=true>×</button><h4>Mention History: <span id=modal-mh-roomname>' + CHANNEL.name + '</span></h4></div><div class=modal-body id=mentionModalWrap><div class=modal-option><div class=checkbox><label for=mh-enable><input id=mh-enable type=checkbox> Enable Mention History</label><div class=modal-caption>When this is checked, chat messages containing your username will be recorded here.</div></div></div><div class=modal-option><div class=checkbox><label for=mh-unique><input id=mh-unique type=checkbox> Only save unique messages</label><div class=modal-caption>When this option is checked, new messages will not be recorded if your history contains a message with the same username and text.</div></div></div><div class=modal-option><label for=mh-maxmsgs class=numInput>Maximum Messages <input id=mh-maxmsgs type=text class=form-control placeholder=200></label><div class=modal-caption>Maximum amount of messages allowed to be recorded. Saved messages have no limit.</div></div><ul class="nav nav-tabs"><li class="active"><a href="#mh-List" data-toggle="tab" aria-expanded="true">All Messages</a></li><li class=""><a href="#mh-saved" data-toggle="tab" aria-expanded="false">Saved Messages</a></li></ul><div class="modal-scroll active" id=mh-List></div><div class="modal-scroll" id=mh-saved></div></div><div class=modal-footer><div class=left-warning>Settings are not applied until you click Save.</div><button class="btn btn-danger" onclick=CLIENT.mentionHistoryFns.emptySaved() type=button>Clear Saved Messages</button><button class="btn btn-danger" onclick=CLIENT.mentionHistoryFns.empty() type=button>Clear Messages</button> <button class="btn btn-primary" data-dismiss=modal onclick=CLIENT.mentionHistoryFns.save() type=button>Save</button> <button class="btn btn-primary" data-dismiss=modal onclick=CLIENT.mentionHistoryFns.updateModal() type=button>Close</button><div class=subfooter><span class=by>written by biggles-</span><span class=ver>version ' + CLIENT.mentionHistory.ver + '</span></div></div></div></div></div>').insertBefore("#pmbar");
                     $('#mentionModal').on('shown.bs.modal', function() {
                         CLIENT.mentionHistoryFns.scrollAll();
                     });
