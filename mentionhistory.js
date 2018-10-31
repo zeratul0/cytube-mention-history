@@ -2,7 +2,8 @@
   Cytube Mention History script
   zeratul (biggles-)
   github.com/zeratul0
-  v1.06
+  v1.061
+  1.061 -- Fixed a logic error (bad CSS selector)
   1.06 -- Implemented pagination.
   1.05 -- Fix options resetting if their elements aren't found
   1.04 -- Ignored users are now.. ignored.
@@ -22,7 +23,7 @@
       'savedWasOpened': false,
       'max': 200,
       'unique': true,
-      'ver': "1.06"
+      'ver': "1.061"
     };
   } else {
     return console.error("Tried to load Mention History add-on, but CLIENT.mentionHistory already exists (did it load already?)");
@@ -186,9 +187,7 @@
         if (msgs.length > CLIENT.mentionHistory.max) {
           CLIENT.mentionHistory.messages = msgs.slice(msgs.length - CLIENT.mentionHistory.max, msgs.length);
           CLIENT.mentionHistoryFns.fillModal(false);
-        }
-
-        if ($('#mentionModal #mh-List div').length <= CLIENT.mentionHistory.pageSize)
+        } else if ($('#mentionModal #mh-List>div').length <= CLIENT.mentionHistory.pageSize)
           $('#mentionModal #mh-List').append(CLIENT.mentionHistoryFns.parseMsg(data, ["save", "delete"], false));
 
         var pages = CLIENT.mentionHistoryFns.updatePageNumbers();
