@@ -19,5 +19,4 @@ Additional names may be added under the **Additional Names** tab, which allows t
 
 For better performance with very high message limits, message lists are paginated, so you will only see up to 50 at a time. Under each message list is a list of pages which change the set of messages you're looking at. The red number is the current page.
 
-Message history is unique across rooms, so you will have different message lists in different rooms. However, they are NOT unique across different usernames, meaning your message history may be viewed by anyone at your computer. This may be changed in a future update, however localStorage isn't exactly secure anyway.
-
+Message history is unique across rooms, so you will have different message lists in different rooms. However, they are NOT unique across different usernames, meaning all different accounts used in your browser will share the same message pool and your mention history may be viewed by anyone at your computer. This may be changed in a future update, however localStorage isn't exactly secure anyway. If you're turned off by this, you may disable this add-on by unchecking **Enable Mention History** and clicking Save at the bottom, and you can use the red buttons to delete your mention history.
