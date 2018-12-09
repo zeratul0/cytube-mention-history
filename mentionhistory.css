@@ -1,0 +1,189 @@
+/*
+CSS for Mention History (1.073 at time of writing)
+biggles-
+github.com/zeratul0
+*/
+
+#showmentionmodal.newMsg {
+    color: red;
+    text-shadow: 1px 0 #500, 0 1px #500, -1px 0 #500, 0 -1px #500;
+}
+#mentionModal.modal .modal-scroll, #mentionModal.modal .modal-noscroll {
+    display: none;
+    padding: 4px;
+    background: #161616;
+    box-shadow: 0 -4px 10px black inset;
+    border: 1px solid black;
+    border-top: 0;
+    border-bottom-left-radius: 6px;
+    border-bottom-right-radius: 6px;
+    width: 100%;
+    height:310px;
+    overflow-y: auto;
+    margin: 0!important;
+    border-top-left-radius: 0!important;
+}
+#mentionModal.modal .modal-scroll.active, #mentionModal.modal .modal-noscroll.active {
+    display: block!important;
+}
+#mentionModal.modal .btn-group .btn-success {
+    background-image: linear-gradient(#1c6b1c,#2c822c 40%,#15a015);
+}
+#mentionModal.modal .btn-group .btn-success:hover {
+    background-image: linear-gradient(#155015,#1f5d1f 40%,#0e6f0e);
+}
+#mentionModal.modal .nav.nav-tabs {
+    margin-top: 30px;
+}
+#mentionModal.modal #mh-List.newMsg {
+    border-color: red!important;
+}
+.modal .modal-scroll>div {
+    overflow: hidden;
+    transition: background-color .5s ease, color .5s ease;
+}
+.modal .modal-scroll>div.blink {
+    transition: none!important;
+    background-color: #3cbd3c;
+    color: black;
+}
+.modal .modal-scroll>div.blink-red {
+    transition: none!important;
+    background-color: #a03e3e;
+    color: black;
+}
+#mentionModal.modal .modal-scroll div .btn-group {
+    margin: 0 5px;
+}
+.modal #mh-maxmsgs {
+    display: inline-block;
+    margin-left: 10px;
+    width: 100px;
+}
+.modal label.numInput {
+    min-height: 20px;
+    padding-left: 20px;
+    margin-bottom: 0;
+    font-weight: 400;
+}
+.modal .left-warning {
+    float: left;
+    padding: 10px 12px;
+    font-size: 13px;
+    color: #ff8f8f
+}
+.modal .modal-caption {
+    font-size: 13px;
+    text-indent: 35px;
+    color: #8f9cad
+}
+#mentionModal .subfooter {
+    text-align: center;
+    color: #757575;
+    margin-top: 3px;
+}
+#mentionModal .subfooter .by {
+    padding-right: 10px;
+    border-right: 1px solid #252525
+}
+#mentionModal .subfooter .ver {
+    padding-left: 10px;
+    border-left: 1px solid #4e4e4e
+}
+#mentionModal #mh-pages {
+    color: #555;
+    text-align: center;
+    padding: 2px 0;
+    cursor: default;
+    overflow-x: auto;
+}
+#mentionModal .mh-page {
+    margin: 2px 0;
+    padding: 0 3px;
+    cursor: pointer;
+    color: #ddd;
+}
+#mentionModalWrap {
+    padding: 20px 20px 0;
+}
+#mentionModal .mh-page.currentpage {
+    color: red;
+    cursor: default;
+}
+#mentionModal .mh-page, #mentionModal #mh-pages {
+    -moz-user-select: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+}
+#mentionModal #mh-pageslbl {
+    color: #777;
+    text-align: center;
+    padding: 0 0 2px;
+    cursor: default;
+}
+.modal .modal-noscroll#mh-names {
+  padding: 0!important;
+}
+
+.modal-txtcontainer {
+  box-shadow: 0 1px 8px black;
+}
+
+#mh-txt-addname {
+  width: 94%;
+  border: 0;
+  margin: 0;
+  height: 1.5em;
+  padding: 1px 4px;
+  background: #333;
+  color: #ccc;
+}
+
+#mh-btn-addname {
+  width: 6%;
+  border: 0;
+  height: 1.5em;
+  border-left: 1px solid black;
+  background: #444;
+}
+
+#mentionModal.modal .modal-noscroll {
+    overflow-y: hidden;
+}
+
+#mentionModal.modal #mh-altitemcontainer {
+  width: 100%;
+  height: calc(100% - 1.5em);
+  overflow-y: auto;
+  padding: 4px;
+  display: grid;
+  grid-auto-flow: row dense;
+  grid-template: repeat(9, 1fr) / repeat(6, 1fr);
+  grid-gap: 2px;
+}
+
+.mh-cellcontent {
+    display: inline-block;
+    padding: 4px;
+    background: #2a2a2a;
+    border-radius: 3px;
+}
+
+#mentionModal .custom .timestamp::before {
+    content: '★';
+    padding: 0 3px 0 0;
+    font-size: 11pt;
+    color: #efed94;
+}
+
+#mentionModal #mh-names .mh-cellcontent .btn-group {
+  padding: 0 8px 0 0;
+}
+
+#mh-btn-addname:hover {
+    background: #666;
+}
+
+#mh-btn-addname:active {
+    background: #222;
+}
