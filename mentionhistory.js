@@ -1,11 +1,12 @@
 /*
   Cytube Mention History script
   biggles-
-  github.com/zeratul0
+  github.com/deerfarce
   
   !!NOTE!! With 1.07, the CSS for this plugin was externalized into its own file. It must be @imported now.
   
-  v1.073
+  v1.08
+  1.08 -- Fixes some potential issues.
   1.073 -- Added support for Xaekai's audio notice script and native notifications for nickname matching
   1.072 -- Added check for duplicate nicknames
   1.071 -- Added minimum nickname length, privatized settings and functions
@@ -28,6 +29,7 @@
   var loadingPage = false,
     minNameLength = 3,
     activeTab = "#mh-List",
+    version = "1.08",
     MH = {
       enabled: true,
       matchOtherNames: false,
@@ -41,8 +43,7 @@
       regexp: null,
       saved: [],
       savedWasOpened: false,
-      unique: true,
-      ver: "1.073"
+      unique: true
   };
 
   function escRegex(expString) {
@@ -50,7 +51,6 @@
   }
 
   function buildMentionRegex() {
-    MH.names;
     if (MH.names.length <= 0) return null;
     var escnames = [];
     for (var i = 0; i < MH.names.length; i++) {
@@ -82,8 +82,17 @@
 
   function load() {
     var opts = getOpt(CHANNEL.name + "_mentionHistory");
-    if (opts)
+    if (opts && typeof opts === "object" && !(opts instanceof Array)) {
       MH = opts;
+      for (var i = 0; i < MH.messages.length; i++) {
+        MH.messages[i].username = stripHTML(MH.messages[i].username);
+        MH.messages[i].msg = stripHTML(MH.messages[i].msg);
+      }
+      for (var i = 0; i < MH.saved.length; i++) {
+        MH.saved[i].username = stripHTML(MH.saved[i].username);
+        MH.saved[i].msg = stripHTML(MH.saved[i].msg);
+      }
+    }
     MH["regexp"] = null;
     MH["savedWasOpened"] = false;
 
@@ -150,6 +159,9 @@
 
   function parseMsg(msgObj, buttons, isSaved) {
     if (msgObj && msgObj['msg'] && msgObj['username'] && msgObj['time']) {
+      msgObj.username = stripHTML(msgObj.username);
+      msgObj.msg = stripHTML(msgObj.msg);
+      msgObj.time = /^\d+$/.test(msgObj.time) ? msgObj.time : 0;
       var buttonHTML = $("<div/>", {'class':"btn-group"});
       if (buttons) {
         if (~buttons.indexOf("save")) {
@@ -182,6 +194,10 @@
       if (msgObj["meta"] && msgObj.meta["custom"]) msg.addClass("custom");
       return msg;
     }
+  }
+
+  function stripHTML(txt) {
+    return txt.replace(/(\<.+?\>)+/gi, "");
   }
 
   function deleteMsg(msgObj) {
@@ -248,6 +264,8 @@
           }
         }
       }
+      data.username = stripHTML(data.username);
+      data.msg = stripHTML(data.msg);
       MH.messages.push(data);
 
       setNewMessage(++MH.newMessages);
@@ -394,7 +412,7 @@
 
   function setHTML() {
     if (!$('#mentionModal').length) {
-      $('<div class="fade modal" id=mentionModal aria-hidden=true role=dialog style=display:none tabindex=-1><div class=modal-dialog><div class=modal-content><div class=modal-header><button class=close data-dismiss=modal aria-hidden=true>×</button><h4>Mention History: <span id=modal-mh-roomname>' + CHANNEL.name + '</span></h4></div><div class=modal-body id=mentionModalWrap><div class=modal-option><div class=checkbox><label for=mh-enable><input id=mh-enable type=checkbox> Enable Mention History</label><div class=modal-caption>When this is checked, chat messages containing your username will be recorded here.</div></div></div><div class=modal-option><div class=checkbox><label for=mh-unique><input id=mh-unique type=checkbox> Only save unique messages</label><div class=modal-caption>When this option is checked, new messages will not be recorded if your history contains a message with the same username and text.</div></div></div><div class=modal-option><label for=mh-maxmsgs class=numInput>Maximum Messages <input id=mh-maxmsgs type=text class=form-control placeholder=200></label><div class=modal-caption>Maximum amount of messages allowed to be recorded. Saved messages have no limit.</div></div><div class="modal-option"><div class="checkbox"><label for="mh-additionalnames"><input id="mh-additionalnames" type="checkbox">Check for additional names</label><div class="modal-caption">When this is checked, messages will be saved if they contain any user-specified words/phrases/etc. Use the Additional Names tab below to edit them.</div></div></div><ul class="nav nav-tabs"><li class="active"><a href="#mh-List" data-toggle="tab" aria-expanded="true">All Messages</a></li><li><a href="#mh-saved" data-toggle="tab" aria-expanded="false">Saved Messages</a></li><li><a href="#mh-names" data-toggle="tab" aria-expanded="false">Additional Names</a></li></ul><div class="modal-scroll active" id=mh-List></div><div class="modal-scroll" id=mh-saved></div><div class="modal-noscroll" id=mh-names><div class="modal-txtcontainer"><input type="textbox" id="mh-txt-addname" placeholder="Enter a new name..."><button id="mh-btn-addname">Add</button></div><div id="mh-altitemcontainer"></div></div><div id=mh-pages></div><div id="mh-pageslbl">0 messages</div></div><div class=modal-footer><div class=left-warning>Settings are not applied until you click Save. However, changes to Additional Names are instant.</div><div class=subfooter><span class=by>written by biggles-</span><span class=ver>version ' + MH.ver + '</span></div></div></div></div></div>').insertBefore("#pmbar");
+      $('<div class="fade modal" id=mentionModal aria-hidden=true role=dialog style=display:none tabindex=-1><div class=modal-dialog><div class=modal-content><div class=modal-header><button class=close data-dismiss=modal aria-hidden=true>×</button><h4>Mention History: <span id=modal-mh-roomname>' + CHANNEL.name + '</span></h4></div><div class=modal-body id=mentionModalWrap><div class=modal-option><div class=checkbox><label for=mh-enable><input id=mh-enable type=checkbox> Enable Mention History</label><div class=modal-caption>When this is checked, chat messages containing your username will be recorded here.</div></div></div><div class=modal-option><div class=checkbox><label for=mh-unique><input id=mh-unique type=checkbox> Only save unique messages</label><div class=modal-caption>When this option is checked, new messages will not be recorded if your history contains a message with the same username and text.</div></div></div><div class=modal-option><label for=mh-maxmsgs class=numInput>Maximum Messages <input id=mh-maxmsgs type=text class=form-control placeholder=200></label><div class=modal-caption>Maximum amount of messages allowed to be recorded. Saved messages have no limit.</div></div><div class="modal-option"><div class="checkbox"><label for="mh-additionalnames"><input id="mh-additionalnames" type="checkbox">Check for additional names</label><div class="modal-caption">When this is checked, messages will be saved if they contain any user-specified words/phrases/etc. Use the Additional Names tab below to edit them.</div></div></div><ul class="nav nav-tabs"><li class="active"><a href="#mh-List" data-toggle="tab" aria-expanded="true">All Messages</a></li><li><a href="#mh-saved" data-toggle="tab" aria-expanded="false">Saved Messages</a></li><li><a href="#mh-names" data-toggle="tab" aria-expanded="false">Additional Names</a></li></ul><div class="modal-scroll active" id=mh-List></div><div class="modal-scroll" id=mh-saved></div><div class="modal-noscroll" id=mh-names><div class="modal-txtcontainer"><input type="textbox" id="mh-txt-addname" placeholder="Enter a new name..."><button id="mh-btn-addname">Add</button></div><div id="mh-altitemcontainer"></div></div><div id=mh-pages></div><div id="mh-pageslbl">0 messages</div></div><div class=modal-footer><div class=left-warning>Settings are not applied until you click Save. However, changes to Additional Names are instant.</div><div class=subfooter><span class=by>written by biggles-</span><span class=ver>version ' + version + '</span></div></div></div></div></div>').insertBefore("#pmbar");
       var btns = [
         $("<button/>", {
           class:"btn btn-danger",
